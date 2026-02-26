@@ -14,6 +14,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 TEST_CONFIG="$REPO_ROOT/tmp/test-claude-config"
+MARKETPLACE_NAME=$(jq -r '.name' "$REPO_ROOT/.claude-plugin/marketplace.json")
 
 # Colors for output
 RED='\033[0;31m'
@@ -97,8 +98,6 @@ EOF
 }
 
 install_all_plugins() {
-    # Marketplace name comes from .claude-plugin/marketplace.json "name" field
-    MARKETPLACE_NAME=$(jq -r '.name' "$REPO_ROOT/.claude-plugin/marketplace.json")
     log "Installing plugins from $MARKETPLACE_NAME marketplace..."
 
     for plugin_dir in "$REPO_ROOT"/plugins/*/; do
@@ -130,12 +129,15 @@ case "${1:-}" in
         ;;
 esac
 
-# Setup if needed
+# One-time setup (settings.json + marketplace registration)
 if [ ! -d "$TEST_CONFIG" ]; then
     setup_config
-    install_all_plugins
-    log "Setup complete!"
 fi
+
+# Always update marketplace and reinstall plugins (picks up source changes)
+log "Updating $MARKETPLACE_NAME marketplace..."
+CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin marketplace update "$MARKETPLACE_NAME"
+install_all_plugins
 
 # Run claude with test config
 log "Starting claude with test config..."
