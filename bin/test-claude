@@ -100,14 +100,16 @@ EOF
 install_all_plugins() {
     log "Installing plugins from $MARKETPLACE_NAME marketplace..."
 
-    for plugin_dir in "$REPO_ROOT"/plugins/*/; do
-        if [ -d "$plugin_dir/.claude-plugin" ]; then
-            plugin_name=$(basename "$plugin_dir")
-            log "  Installing $plugin_name..."
-            CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin install "$plugin_name@$MARKETPLACE_NAME" 2>/dev/null || {
-                warn "  Failed to install $plugin_name (may not be in marketplace.json)"
-            }
+    local marketplace="$REPO_ROOT/.claude-plugin/marketplace.json"
+    jq -r '.plugins[] | select(.source | type == "string") | "\(.name)\t\(.source)"' \
+        "$marketplace" | while IFS=$'\t' read -r name source; do
+        full_path="$REPO_ROOT/${source#./}"
+        if [ ! -d "$full_path" ]; then
+            error "Plugin '$name' source not found at $full_path"
+            exit 1
         fi
+        log "  Installing $name..."
+        CLAUDE_CONFIG_DIR="$TEST_CONFIG" claude plugin install "$name@$MARKETPLACE_NAME"
     done
 }
 
