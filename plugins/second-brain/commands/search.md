@@ -2,8 +2,8 @@
 description: Search your second brain using semantic search
 argument-hint: <query>
 allowed-tools:
-  - Read(~/.claude/second-brain.md)
   - Read(~/.claude/vaults/**/*.md)
+  - Bash(npx @techpickles/sb:*)
   - Bash(which:qmd)
   - Bash(qmd:query *)
   - Bash(qmd:collection list)
@@ -36,10 +36,13 @@ Then configure a collection:
 
 ## Step 2: Load Configuration
 
-Read `~/.claude/second-brain.md` for vault configuration.
+Get the qmd collection name via sb:
 
-Extract collection name from the `qmd_collection` setting under the vault's settings section.
-If not set, default to `second-brain`.
+```bash
+npx @techpickles/sb config qmd-collection
+```
+
+This returns the configured collection name (defaults to `second-brain` if not set).
 
 Verify the collection exists:
 ```bash
