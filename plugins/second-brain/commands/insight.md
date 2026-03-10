@@ -2,17 +2,12 @@
 description: Capture an insight from conversation to your second brain
 argument-hint: [insight to capture]
 allowed-tools:
-  - Read(~/.claude/second-brain.md)
   - Read(~/.claude/vaults/**/CLAUDE.md)
   - Read(~/.claude/vaults/**/.obsidian/*.json)
   - Read(~/.claude/vaults/**/*.md)
   - Write(~/.claude/vaults/**/*.md)
   - Edit(~/.claude/vaults/**/*.md)
-  - Bash(ls:*)
-  - Bash(date:*)
-  - Bash(git rev-parse:*)
-  - Bash(git branch:*)
-  - Bash(mv:*)
+  - Bash(npx @techpickles/sb:*)
   - Bash(which:qmd)
   - Bash(qmd:query *)
   - Bash(qmd:collection list)
@@ -26,19 +21,31 @@ Capture an insight from the current conversation to your Obsidian vault.
 
 ## Step 1: Load Configuration
 
-Read `~/.claude/second-brain.md` for vault name and path.
+Load configuration using sb CLI:
 
-If missing, inform user:
+```bash
+npx @techpickles/sb config default    # Get default vault name
+npx @techpickles/sb config vaults     # List all configured vaults
+```
+
+If sb is not available, inform user:
+```
+sb CLI is required but not available. Install Node.js and npm, then try again.
+Or install globally for faster execution: npm i -g @techpickles/sb
+```
+
+If no vaults are configured, inform user:
 ```
 Second brain not configured. Run /second-brain:setup first.
 ```
 
-Use the symlink path `~/.claude/vaults/{name}` to access the vault (e.g., `~/.claude/vaults/primary`).
+Use the symlink path `~/.claude/vaults/{name}` to access the vault for reading CLAUDE.md (e.g., `~/.claude/vaults/primary`).
 
 Read vault's `CLAUDE.md` for structure and routing rules.
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
+- `references/sb-cli.md` for sb invocation details
 - `references/zettelkasten.md` for naming
 - `references/note-patterns.md` for Insight Note template
 - `references/routing.md` for destination matching
@@ -55,48 +62,20 @@ Ask: "What insight would you like to capture?"
 
 Also review recent conversation context to suggest what might be worth capturing.
 
-## Step 3: Gather Provenance
+## Step 3: Create Note with Provenance
 
-Collect context about where this insight came from:
+Create the note in inbox using sb CLI, which automatically:
+- Generates Zettelkasten filename (YYYYMMDDHHMM format)
+- Collects provenance (repo, branch, commit, timestamp)
+- Writes to inbox
 
-```bash
-# Get repo info (if in a repo)
-git rev-parse --show-toplevel 2>/dev/null || echo "none"
-git branch --show-current 2>/dev/null || echo "none"
-git rev-parse --short HEAD 2>/dev/null || echo "none"
-
-# Get timestamp
-date -u +"%Y-%m-%dT%H:%M:%SZ"
-```
-
-## Step 4: Generate Filename
-
-Use Zettelkasten format: `YYYYMMDDHHMM short-title.md`
+Use **Insight Note** pattern with cleaned up prose (1-3 paragraphs):
 
 ```bash
-date +"%Y%m%d%H%M"
-```
-
-Create short, descriptive title (3-5 words, lowercase, hyphenated).
-
-Example: `202601211430 redis-over-memcached-sessions.md`
-
-## Step 5: Write to Inbox
-
-Get inbox path from vault's `CLAUDE.md` or `.obsidian/app.json`.
-
-Use **Insight Note** pattern from `references/note-patterns.md`:
-
-```markdown
----
-captured: {ISO timestamp}
-source: claude-conversation
-repo: {repo name or "none"}
-branch: {branch name or "none"}
-commit: {short commit hash or "none"}
----
-
-# {Insight Title}
+npx @techpickles/sb note create \
+  --source auto \
+  --title "short descriptive title" \
+  --content "# {Insight Title}
 
 {The insight, cleaned up and clearly written. 1-3 paragraphs.}
 
@@ -105,58 +84,70 @@ commit: {short commit hash or "none"}
 Captured while {brief description of what you were working on/discussing}.
 
 ---
-*Captured via /second-brain:insight*
+*Captured via /second-brain:insight*"
 ```
 
-## Step 6: Confirm and Analyze for Routing
+The `--source auto` flag tells sb to:
+- Use `source: claude-conversation` in frontmatter
+- Collect git provenance (repo, branch, commit) if in a repo
+- Add `captured: {ISO timestamp}` to frontmatter
+- Generate Zettelkasten filename with current timestamp
 
-After writing, confirm capture:
+## Step 4: Confirm and Analyze for Routing
+
+After creation, sb returns the created note's path as JSON. Parse and confirm:
 ```
 ✓ Captured to inbox: {filename}
 
 Analyzing for routing...
 ```
 
-Load `references/routing.md` and follow the algorithm:
-
-**1. Discover vault structure:**
+Get routing context from sb:
 ```bash
-ls -d "{vault}"/*Areas*/*/     2>/dev/null
-ls -d "{vault}"/*Resources*/*/ 2>/dev/null
-ls -d "{vault}"/*Projects*/*/  2>/dev/null
+npx @techpickles/sb note context --note "{note-path}"
 ```
 
-**2. Extract signals from captured note:**
-- Keywords from title and body
+This returns JSON with:
+- Keywords extracted from title and body
 - Content category (architecture, debugging, tool config, etc.)
-- Source context from provenance (repo, branch)
+- Related notes in the vault
+- Source context from provenance
 
-**3. Load disambiguation rules from vault CLAUDE.md:**
+Also discover vault structure:
+```bash
+npx @techpickles/sb vault structure
+```
+
+This returns PARA folders (Areas, Resources, Projects) as structured JSON.
+
+Load disambiguation rules from vault CLAUDE.md (read via Claude's Read tool):
 - Find `### Disambiguation:` sections
 - Extract key questions, category tables, edge case mappings
 - These override generic matching for semantically similar areas
 
-**4. Score each discovered destination:**
+## Step 5: Score Destinations
 
-*If disambiguation rules apply:*
+For each discovered destination from vault structure:
+
+**If disambiguation rules apply:**
 - Check edge case mappings first (explicit rules)
 - Apply key question matches (+25% boost)
 - Apply category table matches (+15% boost)
 - Apply disambiguation mismatch penalty (-20%)
 
-*Then apply generic signals:*
+**Then apply generic signals:**
 - Keyword match in folder name (40%)
 - Related notes exist in folder (30%)
 - PARA category fit (20%)
 - Recency of folder activity (10%)
 
-**5. Calculate confidence levels:**
+**Calculate confidence levels:**
 - High (80-100%): Strong match, often with disambiguation support
 - Medium (50-79%): Partial match
 - Low (20-49%): Weak signals
 - None (<20%): Leave in inbox
 
-## Step 7: Suggest Routing
+## Step 6: Suggest Routing
 
 Present findings with explanations:
 ```
@@ -177,13 +168,15 @@ Routing suggestions for "{filename}":
 When disambiguation rules influenced the result, explain which rule applied.
 
 Use AskUserQuestion with discovered options:
-- Only include destinations that actually exist (from `ls` output)
+- Only include destinations that actually exist (from vault structure)
 - Show confidence and explanation for each
 - Always include "Leave in inbox for now" option
 
-If user selects a destination, move the file:
+If user selects a destination, move the file using sb:
 ```bash
-mv "{inbox}/{filename}" "{vault}/{selected-destination}/"
+npx @techpickles/sb note move \
+  --from "{inbox-note-path}" \
+  --to "{selected-destination}/"
 ```
 
 If all destinations score <20%, recommend inbox without asking.
@@ -222,31 +215,33 @@ Note: The captured note won't be in qmd's index yet. That's fine. We're searchin
 
 ## Step 9: Link to Daily Note
 
-Follow `references/daily-linking.md` to connect the captured note to today's daily note.
+Link the captured note to today's daily note using sb:
 
-**1. Find today's daily note:**
 ```bash
-# Get daily notes folder from config
-cat "{vault}/.obsidian/daily-notes.json" 2>/dev/null
-date +"%Y-%m-%d"
+npx @techpickles/sb daily append \
+  --section "Links" \
+  --content "- [[{filename without .md}]] - {brief description of the insight}"
 ```
 
-**2. If daily note exists, add link to `## Links` section:**
-```markdown
-- [[{filename without .md}]] - {brief description of the insight}
+The sb CLI handles:
+- Finding today's daily note path from .obsidian config
+- Creating the daily note if it doesn't exist
+- Finding or creating the `## Links` section
+- Appending the link
+
+Confirm linking:
+```
+✓ Linked to daily note: {date}.md
 ```
 
-**3. Confirm linking:**
-```
-✓ Linked to daily note: Fleeting/{date}.md
-```
-
-If daily note doesn't exist, skip silently - the note is already captured.
+If daily note linking fails (sb returns error), skip silently. The note is already captured.
 
 ## Constraints
 
 - **Always write to inbox first** - Never skip this step
 - **Use skill references** - Get paths from skill, not hardcoded
-- **Zettelkasten naming** - Must use `YYYYMMDDHHMM title.md` format
+- **Use sb CLI for data operations** - Note creation, moving, structure discovery
+- **Use Claude's Read/Write/Edit for prose** - Reading CLAUDE.md, editing note content
+- **Zettelkasten naming** - sb handles `YYYYMMDDHHMM title.md` format automatically
 - **Show analysis before asking** - Don't just ask, show reasoning
 - **Clean prose** - Well-written insight, not raw conversation paste

@@ -1,17 +1,12 @@
 ---
 description: Extract and capture multiple insights from this conversation
 allowed-tools:
-  - Read(~/.claude/second-brain.md)
   - Read(~/.claude/vaults/**/CLAUDE.md)
   - Read(~/.claude/vaults/**/.obsidian/*.json)
   - Read(~/.claude/vaults/**/*.md)
   - Write(~/.claude/vaults/**/*.md)
   - Edit(~/.claude/vaults/**/*.md)
-  - Bash(ls:*)
-  - Bash(date:*)
-  - Bash(git rev-parse:*)
-  - Bash(git branch:*)
-  - Bash(mv:*)
+  - Bash(npx @techpickles/sb:*)
   - Bash(which:qmd)
   - Bash(qmd:query *)
   - Bash(qmd:collection list)
@@ -25,17 +20,33 @@ Review the current conversation and extract insights worth capturing.
 
 ## Step 1: Load Configuration
 
-Read `~/.claude/second-brain.md` for vault name and path.
+Verify sb CLI is available:
+```bash
+npx @techpickles/sb --version
+```
 
-If missing:
+If unavailable:
+```
+sb CLI is required but not available. Install Node.js and npm, then try again.
+Or install globally for faster execution: npm i -g @techpickles/sb
+```
+
+Load configuration via sb:
+```bash
+npx @techpickles/sb config default
+npx @techpickles/sb config vaults
+```
+
+If no default vault configured:
 ```
 Second brain not configured. Run /second-brain:setup first.
 ```
 
-Use the symlink path `~/.claude/vaults/{name}` to access the vault (e.g., `~/.claude/vaults/primary`).
+Use the symlink path `~/.claude/vaults/{name}` to Read vault files (e.g., `~/.claude/vaults/primary/CLAUDE.md`).
 
 Load skill references:
 - `second-brain:obsidian` for tool mechanics
+- `references/sb-cli.md` for sb command patterns
 - `references/zettelkasten.md` for naming
 - `references/note-patterns.md` for Insight Note template
 - `references/routing.md` for destination matching
@@ -89,12 +100,22 @@ Include "None - skip capture" option.
 
 ## Step 5: Capture Selected
 
-For each selected insight, follow `/second-brain:insight` flow:
-1. Gather provenance
-2. Generate Zettelkasten filename
-3. Write to inbox with Insight Note pattern
-4. Show confirmation
+For each selected insight, create note with sb:
 
+```bash
+npx @techpickles/sb note create \
+  --source auto \
+  --title "{insight title}" \
+  --content "{insight content with provenance}"
+```
+
+This handles:
+- Zettelkasten timestamp filename generation
+- Provenance tracking (git context)
+- Writing to inbox with proper frontmatter
+- Daily note date stamping
+
+Show confirmation:
 ```
 Capturing {N} insights...
 
@@ -111,17 +132,26 @@ Load `references/routing.md` and analyze all captured notes together.
 
 **1. Discover vault structure once:**
 ```bash
-ls -d "{vault}"/*Areas*/*/     2>/dev/null
-ls -d "{vault}"/*Resources*/*/ 2>/dev/null
-ls -d "{vault}"/*Projects*/*/  2>/dev/null
+npx @techpickles/sb vault structure
 ```
 
+Parse JSON output to get available PARA destinations (Areas, Resources, Projects).
+
 **2. Load disambiguation rules from vault CLAUDE.md:**
+
+Read `~/.claude/vaults/{name}/CLAUDE.md`:
 - Find `### Disambiguation:` sections
 - Extract key questions, category tables, edge case mappings
 - These override generic matching for semantically similar areas
 
 **3. Score each captured note:**
+
+For each note, get routing context:
+```bash
+npx @techpickles/sb note context --note "{note-path}"
+```
+
+Parse JSON output for keywords, category, related notes.
 
 *Apply disambiguation rules first (if loaded):*
 - Check edge case mappings (explicit rules)
@@ -158,16 +188,15 @@ Routing explanations:
 3. Leave all in inbox for now
 
 **6. Execute based on selection:**
-- "Route all": Move files with confidence > 20% to suggested destinations
-- "Route individually": Use AskUserQuestion for each note separately
-- "Leave all": Skip routing, notes stay in inbox
 
+For "Route all" or per-note confirmation:
 ```bash
-# For each routed note:
-mv "{inbox}/{filename}" "{vault}/{destination}/"
+npx @techpickles/sb note move \
+  --from "inbox/{filename}" \
+  --to "{destination-path}/"
 ```
 
-**Important:** Only suggest destinations that exist (from `ls` output). Never suggest paths that weren't discovered.
+**Important:** Only suggest destinations that exist (from `vault structure` output). Never suggest paths that weren't discovered.
 
 ## Step 7: Batch Connection Discovery
 
@@ -211,17 +240,25 @@ Note: Newly captured notes won't be in qmd's index yet. That's fine. We search F
 
 Follow `references/daily-linking.md` to connect all captured notes to today's daily note.
 
-**1. Find today's daily note:**
+**1. Get today's daily note path:**
 ```bash
-cat "{vault}/.obsidian/daily-notes.json" 2>/dev/null
-date +"%Y-%m-%d"
+npx @techpickles/sb daily path
 ```
 
 **2. If daily note exists, batch-add links to `## Links` section:**
+
+Build combined content:
 ```markdown
 - [[{filename1 without .md}]] - {description1}
 - [[{filename2 without .md}]] - {description2}
 - [[{filename3 without .md}]] - {description3}
+```
+
+Append all at once:
+```bash
+npx @techpickles/sb daily append \
+  --section "Links" \
+  --content "{combined-links}"
 ```
 
 **3. Confirm:**
@@ -229,7 +266,7 @@ date +"%Y-%m-%d"
 ✓ Linked {N} notes to daily note: Fleeting/{date}.md
 ```
 
-If daily note doesn't exist, skip silently - notes are already captured.
+If daily note doesn't exist, skip silently (notes are already captured).
 
 ## Constraints
 
@@ -237,4 +274,4 @@ If daily note doesn't exist, skip silently - notes are already captured.
 - **Categorize clearly** - Help user understand knowledge type
 - **Batch efficiently** - Don't make user go through many dialogs
 - **Clean prose** - Each insight standalone, useful months later
-- **Zettelkasten naming** - Must use `YYYYMMDDHHMM title.md`
+- **Zettelkasten naming** - Handled by sb (YYYYMMDDHHMM title.md)
