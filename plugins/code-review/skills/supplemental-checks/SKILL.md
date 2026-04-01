@@ -2,6 +2,8 @@
 
 These are additional checks to apply during every code review, covering things commonly missed by standard review tools. This skill is primarily for reviewing Ruby code; some checks are Ruby-specific.
 
+These checks are opinionated. If the PR description or existing review discussion already addresses a potential violation — explaining why a different approach was chosen — respect that decision and do not re-flag it.
+
 ## Ruby: Prefer Enumerable Methods Over Mutating in `each`
 
 Building a collection by mutating a variable inside an `each` block is almost always a sign that a more expressive Enumerable method exists. Flag these patterns and suggest the appropriate alternative. Common cases:
