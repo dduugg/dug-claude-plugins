@@ -56,6 +56,16 @@ Indirection has a cost: a method call instead of a direct read, a public interfa
 
 **Inline single-use methods.** If a method is short and has exactly one caller, consider inlining it. The extraction adds a navigation burden without adding reuse or clarity. This does not apply if the extracted name meaningfully communicates intent that would otherwise be lost.
 
+## Ruby: Use `T.untyped` Sparingly in Sorbet Signatures
+
+`T.untyped` opts out of type checking entirely and should be a last resort. Flag uses outside the common acceptable case and suggest a more precise alternative.
+
+**Acceptable:** Hash value types where the values are genuinely heterogeneous — `T::Hash[Symbol, T.untyped]`.
+
+**Use `T.anything` instead** when a value is intentionally accepted regardless of type but type checking should still apply (e.g. a generic container or passthrough). Unlike `T.untyped`, `T.anything` remains within the type system.
+
+**Otherwise, identify the type.** Inspect callsites, return values, and surrounding context to determine what the type actually is. Code is read far more often than it is written — a precise type reduces effort for every future reader, human or agent, and catches bugs that `T.untyped` would silently permit.
+
 ## Ruby: Prefer Non-Capturing Groups in Regular Expressions
 
 When reviewing a regex, check every `(...)` group. If the captured value is never referenced (no `$1`, `\1`, named capture, or destructured match result), suggest replacing it with a non-capturing group `(?:...)`. Capture groups allocate memory and add noise; `(?:...)` makes the intent explicit and is cheaper.
