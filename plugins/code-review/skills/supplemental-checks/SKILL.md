@@ -16,6 +16,25 @@ Building a collection by mutating a variable inside an `each` block is almost al
 
 The test: if the block writes to something outside itself, there is likely a better method. Use judgment — deeply nested or multi-step transformations may be clearer as explicit loops.
 
+## Ruby: Avoid `blank?` and `present?` Except on Strings
+
+`blank?` and `present?` are ActiveSupport monkey-patches and should be treated as a last resort. Their only well-suited use is on `String`, where they detect whitespace-only values. On everything else, they are both slow and imprecise.
+
+**Why they're slow:** On non-String objects, `blank?` dynamically checks whether `empty?` is defined, calls it if so, and returns `false` otherwise — with special cases hardcoded for `nil` and `false`. This dispatch cannot be cached and runs every call.
+
+**Why they're imprecise:** They conflate distinct concepts. Use the check that matches the actual intent:
+
+| Instead of | Use | When you mean |
+|---|---|---|
+| `foo.blank?` | `foo.nil?` | checking for nil |
+| `foo.blank?` | `!foo` | checking for nil or false |
+| `foo.blank?` | `foo.empty?` | checking an Array, Hash, or String is empty |
+| `foo.present?` | `!foo.nil?` | checking non-nil |
+| `foo.present?` | `foo` (in a conditional) | checking truthy |
+| `foo.present?` | `!foo.empty?` | checking non-empty collection |
+
+When reviewing, check Sorbet type signatures or use LSP to determine the type of the receiver and suggest the appropriate lightweight alternative. If the type is `String` and whitespace-only detection is plausible, `blank?` may be acceptable.
+
 ## Reserve "Request Changes" for Serious Issues
 
 Only request changes when code is fundamentally broken or has a meaningful security vulnerability. For everything else — style preferences, minor improvements, alternative approaches — leave a comment instead. Defaulting to "request changes" for ordinary feedback is unnecessarily blocking and signals more severity than intended.
