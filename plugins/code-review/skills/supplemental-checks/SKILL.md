@@ -16,6 +16,16 @@ Building a collection by mutating a variable inside an `each` block is almost al
 
 The test: if the block writes to something outside itself, there is likely a better method. Use judgment — deeply nested or multi-step transformations may be clearer as explicit loops.
 
+## Ruby: Avoid Unnecessary Indirection
+
+Indirection has a cost: a method call instead of a direct read, a public interface that exists only to serve private code, an extracted method that requires a context switch to understand. Flag these patterns:
+
+**Use ivars directly inside the class.** If a class accesses its own data through an `attr` reader internally, prefer the ivar directly (`@foo` instead of `foo`). Direct ivar access is faster and makes it immediately obvious at the call site that this is a local data read — not a computed property or something potentially expensive.
+
+**Remove attrs used only internally.** If an `attr_reader` or `attr_accessor` is declared but never called from outside the class, the attr serves no purpose. Remove it and access the ivar directly throughout.
+
+**Inline single-use methods.** If a method is short and has exactly one caller, consider inlining it. The extraction adds a navigation burden without adding reuse or clarity. This does not apply if the extracted name meaningfully communicates intent that would otherwise be lost.
+
 ## Ruby: Avoid `blank?` and `present?` Except on Strings
 
 `blank?` and `present?` are ActiveSupport monkey-patches and should be treated as a last resort. Their only well-suited use is on `String`, where they detect whitespace-only values. On everything else, they are both slow and imprecise.
