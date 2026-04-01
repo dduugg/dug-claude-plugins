@@ -26,6 +26,12 @@ Indirection has a cost: a method call instead of a direct read, a public interfa
 
 **Inline single-use methods.** If a method is short and has exactly one caller, consider inlining it. The extraction adds a navigation burden without adding reuse or clarity. This does not apply if the extracted name meaningfully communicates intent that would otherwise be lost.
 
+## Ruby: Structure and Ordering
+
+**Class layout.** Follow the standard Ruby class structure (https://rubystyle.guide/#consistent-classes): module inclusions, constants, macros (e.g. `attr_*`), class methods, then instance methods, with `private`/`protected` sections at the end. Flag deviations.
+
+**Preserve existing ordering conventions.** If the surrounding code uses a consistent ordering — alphabetical methods, alphabetical `require` statements, alphabetical hash keys, sorted `case`/`when` branches, or any other explicit sequence — new entries must follow that same order. Flag insertions that break an existing sequence unless a comment explains why the ordering change is intentional.
+
 ## Ruby: Avoid `blank?` and `present?` Except on Strings
 
 `blank?` and `present?` are ActiveSupport monkey-patches and should be treated as a last resort. Their only well-suited use is on `String`, where they detect whitespace-only values. On everything else, they are both slow and imprecise.
