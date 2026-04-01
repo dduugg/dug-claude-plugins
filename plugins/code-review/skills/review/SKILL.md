@@ -1,26 +1,18 @@
-# Review Files
+# Code Review
 
-Review one or more specific files.
+Review code from any source: local changes, a pull request, or specific files.
 
-## Steps
+## Gathering Code
 
-1. Identify files to review:
-   - Use files explicitly provided by the user
-   - If none specified, ask which files to review
+Determine what to review based on context:
 
-2. Read each file in full
+- **Local changes**: `git diff HEAD` for all modifications; `git status` for new/deleted files; read new untracked files directly
+- **Pull request**: `gh pr view <number> --json title,body,files` then `gh pr diff <number>`; if no number given, use `gh pr view` for the current branch
+- **Specific files**: read each file provided; if none specified, ask
 
-3. Perform the review following the General Review Process below
+In all cases, read surrounding code in modified files as needed to understand context.
 
-4. Apply supplemental checks from [supplemental-checks/SKILL.md](../supplemental-checks/SKILL.md)
-
-5. Present findings organized by file, ordered by severity (blocking issues first)
-
----
-
-## General Review Process
-
-Apply this process for all code review skills.
+## Review Checklist
 
 ### Correctness
 - Logic errors, off-by-one errors, incorrect conditions
@@ -49,3 +41,16 @@ Apply this process for all code review skills.
 - Obvious N+1 queries or redundant work in loops
 - Unbounded operations on large datasets
 - Unnecessary allocations in hot paths
+
+## Supplemental Checks
+
+Apply all checks from [supplemental-checks/SKILL.md](../supplemental-checks/SKILL.md).
+
+## Output
+
+Present findings ordered by severity:
+- **Blocking issues**: must be fixed
+- **Suggestions**: improvements worth considering
+- **Praise**: things done well (be specific)
+
+For PRs, conclude with an overall assessment: approve / request changes / comment.
