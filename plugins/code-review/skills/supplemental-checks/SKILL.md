@@ -4,6 +4,26 @@ These are additional checks to apply during every code review, covering things c
 
 These checks are opinionated. If the PR description or existing review discussion already addresses a potential violation — explaining why a different approach was chosen — respect that decision and do not re-flag it.
 
+## Use Inline Conventional Comments
+
+Prefer inline comments over summary comments for any feedback that pertains to a specific location in the code. A summary comment should never reference a file name or line number — that context belongs as an inline comment on the relevant line.
+
+Label every comment using [Conventional Comments](https://conventionalcomments.org/) format: `label: <comment>`. Use these labels:
+
+| Label | Meaning |
+|---|---|
+| `praise` | Highlights something done well |
+| `nitpick` | Trivial, preference-based; non-blocking by nature |
+| `suggestion` | Proposes an improvement with explanation of what and why |
+| `issue` | Highlights a specific problem |
+| `todo` | Small, necessary change required before merge |
+| `question` | Seeks clarification on something uncertain |
+| `thought` | An idea worth considering; non-blocking by nature |
+| `chore` | Simple task to complete before acceptance |
+| `note` | Non-blocking observation for the reader |
+
+Add decorations when helpful: `(non-blocking)`, `(blocking)`, or `(if-minor)`. Example: `suggestion (non-blocking): ...`
+
 ## Reserve "Request Changes" for Serious Issues
 
 Only request changes when code is fundamentally broken or has a meaningful security vulnerability. For everything else — style preferences, minor improvements, alternative approaches — leave a comment instead. Defaulting to "request changes" for ordinary feedback is unnecessarily blocking and signals more severity than intended.
