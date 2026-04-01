@@ -28,6 +28,10 @@ Indirection has a cost: a method call instead of a direct read, a public interfa
 
 **Inline single-use methods.** If a method is short and has exactly one caller, consider inlining it. The extraction adds a navigation burden without adding reuse or clarity. This does not apply if the extracted name meaningfully communicates intent that would otherwise be lost.
 
+## Ruby: Prefer Non-Capturing Groups in Regular Expressions
+
+When reviewing a regex, check every `(...)` group. If the captured value is never referenced (no `$1`, `\1`, named capture, or destructured match result), suggest replacing it with a non-capturing group `(?:...)`. Capture groups allocate memory and add noise; `(?:...)` makes the intent explicit and is cheaper.
+
 ## Ruby: Structure and Ordering
 
 **Class layout.** Follow the standard Ruby class structure (https://rubystyle.guide/#consistent-classes): module inclusions, constants, macros (e.g. `attr_*`), class methods, then instance methods, with `private`/`protected` sections at the end. Flag deviations.
