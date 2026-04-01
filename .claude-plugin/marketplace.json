@@ -1,0 +1,8 @@
+{
+  "name": "dug-claude-plugins",
+  "description": "Personal plugins marketplace for dduugg",
+  "owner": {
+    "name": "dduugg"
+  },
+  "plugins": []
+}

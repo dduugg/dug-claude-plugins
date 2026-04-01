@@ -1,0 +1,21 @@
+# macOS
+.DS_Store
+
+# Editor directories
+.vscode/
+.idea/
+
+# Temporary files
+*.swp
+*.swo
+*~
+*.backup
+
+# Git worktrees
+.worktrees/
+
+# Local Claude settings
+.claude/settings.local.json
+
+# Temporary/generated test artifacts
+tmp/
