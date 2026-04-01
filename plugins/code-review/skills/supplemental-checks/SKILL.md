@@ -56,6 +56,16 @@ Indirection has a cost: a method call instead of a direct read, a public interfa
 
 **Inline single-use methods.** If a method is short and has exactly one caller, consider inlining it. The extraction adds a navigation burden without adding reuse or clarity. This does not apply if the extracted name meaningfully communicates intent that would otherwise be lost.
 
+## Ruby: Avoid Complex `unless` Expressions
+
+`unless` is acceptable for simple negation of a single condition — `unless foo` — but quickly becomes harder to parse than an equivalent `if`. Flag and suggest an `if` rewrite when `unless` is combined with:
+
+- `!` — double negation (`unless !foo` → `if foo`)
+- `&&` or `||` — compound conditions (`unless a || b` → `if !a && !b`)
+- `else` — an `unless/else` is always clearer as `if/else`
+
+Provide the equivalent `if` expression in the suggestion so the reviewer doesn't have to work it out.
+
 ## Ruby: Use `T.untyped` Sparingly in Sorbet Signatures
 
 `T.untyped` opts out of type checking entirely and should be a last resort. Flag uses outside the common acceptable case and suggest a more precise alternative.
