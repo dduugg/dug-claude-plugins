@@ -52,7 +52,9 @@ Indirection has a cost: a method call instead of a direct read, a public interfa
 
 **Use ivars directly inside the class.** If a class accesses its own data through an `attr` reader internally, prefer the ivar directly (`@foo` instead of `foo`). Direct ivar access is faster and makes it immediately obvious at the call site that this is a local data read — not a computed property or something potentially expensive.
 
-**Remove attrs used only internally.** If an `attr_reader` or `attr_accessor` is declared but never called from outside the class, the attr serves no purpose. Remove it and access the ivar directly throughout.
+Two exceptions: if the reader implements a memoization pattern (`@foo ||= ...`), internal callers should go through the reader to benefit from it. Similarly, if the class is designed to be subclassed and the reader may be overridden, internal callers should go through the reader to preserve polymorphic behavior.
+
+**Remove attrs used only internally.** If an `attr_reader` or `attr_accessor` is declared but never called from outside the class and has no memoization or override use case, the attr serves no purpose. Remove it and access the ivar directly throughout.
 
 **Inline single-use methods.** If a method is short and has exactly one caller, consider inlining it. The extraction adds a navigation burden without adding reuse or clarity. This does not apply if the extracted name meaningfully communicates intent that would otherwise be lost.
 
@@ -68,9 +70,7 @@ Example: `unless a || b` → `if !a && !b`
 
 **Acceptable:** Hash value types where the values are genuinely heterogeneous — `T::Hash[Symbol, T.untyped]`.
 
-**Use `T.anything` instead** when a value is intentionally accepted regardless of type but type checking should still apply (e.g. a generic container or passthrough). Unlike `T.untyped`, `T.anything` remains within the type system.
-
-**Otherwise, identify the type.** Inspect callsites, return values, and surrounding context to determine what the type actually is. Code is read far more often than it is written — a precise type reduces effort for every future reader, human or agent, and catches bugs that `T.untyped` would silently permit.
+**Otherwise, flag it and ask the author to identify the type.** Inspect callsites, return values, and surrounding context to determine what the type actually is. If a precise type is not apparent from available context, leave a `question` comment asking the author to replace it or justify why a precise type cannot be used. Code is read far more often than it is written — a precise type reduces effort for every future reader, human or agent, and catches bugs that `T.untyped` would silently permit.
 
 ## Ruby: Prefer Non-Capturing Groups in Regular Expressions
 
@@ -86,7 +86,7 @@ When reviewing a regex, check every `(...)` group. If the captured value is neve
 
 `blank?` and `present?` are ActiveSupport monkey-patches and should be treated as a last resort. Their only well-suited use is on `String`, where they detect whitespace-only values. On everything else, they are both slow and imprecise.
 
-**Why they're slow:** On non-String objects, `blank?` dynamically checks whether `empty?` is defined, calls it if so, and returns `false` otherwise — with special cases hardcoded for `nil` and `false`. This dispatch cannot be cached and runs every call.
+**Why they're slow:** ActiveSupport defines optimized overrides on common types: `nil` and `false` short-circuit immediately, and `Array`, `Hash`, and `Symbol` alias `blank?` directly to `empty?`. For every other object — the majority in application code — the fallback on `Object` is `respond_to?(:empty?) ? !!empty? : false`. This dynamic dispatch cannot be cached and runs every call.
 
 **Why they're imprecise:** They conflate distinct concepts. Use the check that matches the actual intent:
 
