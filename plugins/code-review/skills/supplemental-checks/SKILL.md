@@ -58,13 +58,9 @@ Indirection has a cost: a method call instead of a direct read, a public interfa
 
 ## Ruby: Avoid Complex `unless` Expressions
 
-`unless` is acceptable for simple negation of a single condition — `unless foo` — but quickly becomes harder to parse than an equivalent `if`. Flag and suggest an `if` rewrite when `unless` is combined with:
+`unless` is acceptable for simple negation of a single condition — `unless foo` — but flag it when combined with `&&` or `||`. Compound conditions with `unless` require mental negation of the whole expression; an `if` with the equivalent condition is always clearer. Provide the rewritten `if` expression in the suggestion.
 
-- `!` — double negation (`unless !foo` → `if foo`)
-- `&&` or `||` — compound conditions (`unless a || b` → `if !a && !b`)
-- `else` — an `unless/else` is always clearer as `if/else`
-
-Provide the equivalent `if` expression in the suggestion so the reviewer doesn't have to work it out.
+Example: `unless a || b` → `if !a && !b`
 
 ## Ruby: Use `T.untyped` Sparingly in Sorbet Signatures
 
